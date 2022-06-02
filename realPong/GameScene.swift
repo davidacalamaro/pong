@@ -1,88 +1,230 @@
 //
 //  GameScene.swift
-//  realPong
+//  pong
 //
-//  Created by david on 12/16/21.
+//  Created by david on 12/14/21.
 //
 
 import SpriteKit
 import GameplayKit
 
-class GameScene: SKScene {
+class GameScene: SKScene, SKPhysicsContactDelegate
+{
+    var theBall = SKNode()
+    var bottom = SKSpriteNode()
+    var top = SKSpriteNode()
+    var topCol = SKSpriteNode()
+    var botCol = SKSpriteNode()
+    var fingerOnBottom = false
+    var cpuScore = 0
+    var myScore = 0
+    var scorelabel = SKLabelNode()
+    override func didMove(to view: SKView)
+    {
+        let borderBody = SKPhysicsBody(edgeLoopFrom: self.frame)
+        borderBody.friction = 0
+        self.physicsBody = borderBody
+        physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
+        theBall = self.childNode(withName: "ball")!
+        bottom = self.childNode(withName: "bottom") as! SKSpriteNode
+        theBall.physicsBody?.mass = 0.5
+        theBall.physicsBody?.velocity = CGVector(dx: 500, dy: -500)
+        theBall.physicsBody?.friction = 0
+        theBall.physicsBody?.categoryBitMask = 1
+        topCol.physicsBody?.categoryBitMask = 2
+        botCol.physicsBody?.categoryBitMask = 3
+        theBall.physicsBody?.contactTestBitMask = 2 | 3
+        createTop()
+        createCo()
+        physicsWorld.contactDelegate = self
+    setupLabel()
+    }
+  
+    func setupLabel()
+    {
+        scorelabel = SKLabelNode(text: "CPU: \(cpuScore)|Player: \(myScore)")
+        scorelabel.position = CGPoint(x: frame.width * 0.75, y: frame.height * 0.5)
+        scorelabel.position = CGPoint(x: 0, y: 0)
+        addChild(scorelabel)
+    }
     
-    private var label : SKLabelNode?
-    private var spinnyNode : SKShapeNode?
     
-    override func didMove(to view: SKView) {
+    func createCo()
+    {
+        topCol = SKSpriteNode(color: UIColor.black, size: CGSize(width: frame.width, height: 50))
+        topCol.position = CGPoint(x: 0, y: 345)
+        topCol.physicsBody = SKPhysicsBody(rectangleOf: topCol.frame.size)
+        topCol.physicsBody?.isDynamic = false
+        topCol.physicsBody?.categoryBitMask = 2
+        topCol.name = "topCol"
         
-        // Get label node from scene and store it for use later
-        self.label = self.childNode(withName: "//helloLabel") as? SKLabelNode
-        if let label = self.label {
-            label.alpha = 0.0
-            label.run(SKAction.fadeIn(withDuration: 2.0))
+        botCol = SKSpriteNode(color: UIColor.black, size: CGSize(width: frame.width, height: 50))
+        botCol.position = CGPoint(x: 0, y: -345)
+        botCol.physicsBody = SKPhysicsBody(rectangleOf: topCol.frame.size)
+        botCol.physicsBody?.isDynamic = false
+        botCol.physicsBody?.categoryBitMask = 3
+        botCol.name = "botCol"
+        
+    
+        addChild(botCol)
+        addChild(topCol)
+    }
+    
+    func didBegin(_ contact: SKPhysicsContact)
+    {
+        
+        if contact.bodyA.categoryBitMask == 1 && contact.bodyB.categoryBitMask == 2
+        {
+            myScore+=1
+            resetBall()
         }
         
-        // Create shape node to use during mouse interaction
-        let w = (self.size.width + self.size.height) * 0.05
-        self.spinnyNode = SKShapeNode.init(rectOf: CGSize.init(width: w, height: w), cornerRadius: w * 0.3)
-        
-        if let spinnyNode = self.spinnyNode {
-            spinnyNode.lineWidth = 2.5
-            
-            spinnyNode.run(SKAction.repeatForever(SKAction.rotate(byAngle: CGFloat(Double.pi), duration: 1)))
-            spinnyNode.run(SKAction.sequence([SKAction.wait(forDuration: 0.5),
-                                              SKAction.fadeOut(withDuration: 0.5),
-                                              SKAction.removeFromParent()]))
-        }
-    }
-    
-    
-    func touchDown(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.green
-            self.addChild(n)
-        }
-    }
-    
-    func touchMoved(toPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.blue
-            self.addChild(n)
-        }
-    }
-    
-    func touchUp(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.red
-            self.addChild(n)
-        }
-    }
-    
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if let label = self.label {
-            label.run(SKAction.init(named: "Pulse")!, withKey: "fadeInOut")
+        if contact.bodyA.categoryBitMask == 2 && contact.bodyB.categoryBitMask == 1
+        {
+            myScore+=1
+            resetBall()
         }
         
-        for t in touches { self.touchDown(atPoint: t.location(in: self)) }
+        if contact.bodyA.categoryBitMask == 1 && contact.bodyB.categoryBitMask == 3
+        {
+            cpuScore+=1
+            resetBall()
+        }
+        
+        if contact.bodyA.categoryBitMask == 3 && contact.bodyB.categoryBitMask == 1
+        {
+            cpuScore+=1
+            resetBall()
+        }
+        
+        
+        
+       // print(theBall.physicsBody?.velocity)
+        scorelabel.text = "CPU: \(cpuScore)|Player: \(myScore)"
+        
+        
+        
+        
+        
     }
     
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchMoved(toPoint: t.location(in: self)) }
+    func createTop()
+    {
+        top = SKSpriteNode(color: UIColor.red, size: CGSize(width: 173.455, height: 34.996))
+        top.position = CGPoint(x: 0, y: 302.502)
+        top.physicsBody = SKPhysicsBody(rectangleOf: top.size)
+        top.physicsBody?.affectedByGravity = false
+        top.physicsBody?.allowsRotation = false
+        top.physicsBody?.friction = 0
+        top.physicsBody?.isDynamic = false
+        
+        followBall()
+        addChild(top)
+        
+        
+        
+        run(SKAction.repeatForever(SKAction.sequence(
+            [
+            SKAction.run(followBall),
+            SKAction.wait(forDuration: 0.1)
+            ]
+        )))
     }
     
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
-    }
-    
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
+    func followBall()
+    {
+        let move = SKAction.moveTo(x: theBall.position.x, duration: 0.2)
+        top.run(move)
     }
     
     
-    override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
+    //-311 is bottom
+    //311 is top
+    
+    
+    func resetBall()
+    {
+        theBall.physicsBody?.velocity = .zero
+        let wait = SKAction.wait(forDuration: 1.0)
+        
+        let sequence = SKAction.sequence([wait, SKAction.run {self.ballCenter()}, wait, SKAction.run {self.push()}])
+        run(sequence)
+        
+        
+        
+        
+        
+        
+        bottom.position = CGPoint(x: 0, y: -302.502)
+        top.position = CGPoint(x: 0, y: 302.502)
     }
+    func ballCenter()
+    {
+        theBall.position = CGPoint(x: 0, y: 0)
+    }
+    
+    
+    func push()
+    {
+        var nums = [-500, 500]
+        theBall.physicsBody?.velocity = CGVector(dx: nums.randomElement()!, dy: nums.randomElement()!)
+    }
+    
+    
+    
+    
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
+        let location = touches.first?.location(in: self)
+        
+        
+        if bottom.contains(location!)
+        {
+            fingerOnBottom = true
+        }
+        
+        if theBall.contains(location!)
+        {
+            theBall.physicsBody?.velocity = CGVector(dx: -500, dy: -500)
+        }
+        
+        
+//        if Int(theBall.position.x) = -165 | Int(theBall.position.x) = 165
+//        {
+//            theBall.physicsBody?.velocity = CGVector(dx: -500, dy: -500)
+//        }
+//
+        
+    }
+    
+    
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
+        let location = touches.first?.location(in: self)
+        
+        
+        if fingerOnBottom == true
+        {
+            bottom.position = CGPoint(x: location!.x, y: bottom.position.y)
+        }
+        
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?)
+    {
+        fingerOnBottom = false
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }
